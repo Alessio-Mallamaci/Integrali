@@ -1,100 +1,99 @@
 /** \file main.c
-	\brief Numerical integration of a polynomial
+	\brief Integrazione numerica di un polinomio
 	\author Paolo Gastaldo
 
-	Details.
+	Dettagli.
 */
 
-#include <stdio.h> 
-#include <stdlib.h> 
-#include "io.h"
-#include "structs.h"
-#include "mathf.h"
+#include <stdio.h>      // Libreria standard di I/O
+#include <stdlib.h>     // Libreria per gestione memoria dinamica e funzioni di utilità
+#include "io.h"         // Header personalizzato per I/O (es. apertura/lettura file)
+#include "structs.h"    // Header con la definizione della struttura poly_s
+#include "mathf.h"      // Header con funzioni matematiche personalizzate (es. Polynomial, Rectangular, Trapezoidal)
 
 
-/*! \brief the main function
+/*! \brief funzione principale
 		
-	here we read the configuration file to: set the polynomial, set the integration range and set the number of equally spaced intervals in which the range should be divided 
-	the points delimiting the intervals are defined and then the integration is finalized 
+	In questa funzione viene letto il file di configurazione per: impostare il polinomio, impostare l'intervallo di integrazione e il numero di intervalli equidistanti in cui suddividere l'intervallo.
+	Vengono definiti i punti che delimitano gli intervalli e infine si procede all'integrazione.
 	
 */
 
 int main() {
 
-	int steps;
-	float xmin, xmax;
-	poly_s pf;
+	int steps;               // Numero di intervalli
+	float xmin, xmax;        // Estremi dell'intervallo di integrazione
+	poly_s pf;               // Struttura contenente il polinomio
 	
-	float in;
-	float gap;
-	float* fvalues = NULL;
+	float in;                // Variabile temporanea per iterare sui punti dell'intervallo
+	float gap;               // Ampiezza di ciascun intervallo
+	float* fvalues = NULL;   // Array che conterrà i valori del polinomio nei punti campionati
 	
-	float integ1, integ2;
-	int i;
-	int rv;	
-	FILE* fptr = NULL;
+	float integ1, integ2;    // Variabili per salvare i risultati dell'integrazione
+	int i;                   // Contatore
+	int rv;	                 // Codice di ritorno per funzioni
+	FILE* fptr = NULL;       // Puntatore al file di configurazione
 	
-	/* opening the configuration file */
-	char filePath[100]="config.txt";
-	fptr=OpenFile(filePath);
+	/* apertura del file di configurazione */
+	char filePath[100]="config.txt";   // Percorso del file di configurazione
+	fptr=OpenFile(filePath);           // Apertura del file
 	if (fptr == NULL) {
 		printf("\n Main - ");
-		printf("ERROR: Unable to open file %s\n",filePath);
-		exit(-1);
+		printf("ERRORE: impossibile aprire il file %s\n",filePath);
+		exit(-1);                       // Uscita in caso di errore
 	}
 	
-	/* reading the configuration file */
-	rv=ReadConfigFile(fptr,&pf,&xmin,&xmax,&steps);
+	/* lettura del file di configurazione */
+	rv=ReadConfigFile(fptr,&pf,&xmin,&xmax,&steps);  // Lettura dei dati: coefficienti polinomio, intervallo, e numero di intervalli
 	if (rv == -1) {
 		printf("\n Main - ");
-		printf("ERROR: Unable to read configuration file \n");
-		exit(-1);
+		printf("ERRORE: impossibile leggere il file di configurazione\n");
+		exit(-1);                                     // Uscita in caso di errore
 	}
 	
-	/* closing the configuration file */
-	rv=CloseFile(fptr);
+	/* chiusura del file di configurazione */
+	rv=CloseFile(fptr);            // Chiusura del file
 	if (rv == -1) {
 		printf("\n Main - ");
-		printf("ERROR: Unable to close configuration file \n");
-		exit(-1);
+		printf("ERRORE: impossibile chiudere il file di configurazione\n");
+		exit(-1);                 // Uscita in caso di errore
 	}
 	
-		
-	in = xmin;
-	gap = (float)(xmax-xmin)/(float)steps;
+	/* calcolo dell’ampiezza degli intervalli */
+	in = xmin;                                              // Punto iniziale dell’integrazione
+	gap = (float)(xmax-xmin)/(float)steps;                  // Calcolo dell’ampiezza di ciascun intervallo --> fa il CAST
 	
-	/* allocation of the array fvalues */
-	fvalues = (float*)malloc(sizeof(float)*(steps+1));
+	/* allocazione dell’array fvalues */
+	fvalues = (float*)malloc(sizeof(float)*(steps+1));     // Allocazione dinamica per i valori del polinomio
 	if (fvalues == NULL) {
-		printf("\nERROR: cannot allocate memory\n");
-		exit(-1);
+		printf("\nERRORE: impossibile allocare memoria\n");
+		exit(-1);                                           // Uscita in caso di errore
 	}
 
-	/* fvalues stores the values delimiting the intervals */
+	/* fvalues contiene i valori del polinomio nei punti che delimitano gli intervalli */
 	for (i=0; i<=steps; i++) {
-		fvalues[i] = Polynomial(pf,in);
-		in += gap;
-		
+		fvalues[i] = Polynomial(pf,in);     // Calcola il valore del polinomio nel punto corrente
+		in += gap;                          // Passa al punto successivo
 	}
 	
 	integ1= 0.; 
 	integ2= 0.;
 
-	/* integral according to the Rectangular rule */
-	Rectangular(fvalues,steps+1,gap,&integ1,&integ2);
-	printf("\nRectangular rule - The integral between %f and %f is in the interval: [%f,%f]\n", xmin,xmax,integ1,integ2);
+	/* integrazione secondo la regola dei rettangoli */
+	Rectangular(fvalues,steps+1,gap,&integ1,&integ2);  // Integrazione con regola dei rettangoli (valori minimo e massimo)
+	printf("\nRegola dei rettangoli - L'integrale tra %f e %f è nell'intervallo: [%f,%f]\n", xmin,xmax,integ1,integ2);
 	
-	/* integral according to the Trapezoidal rule */
-	integ1 = Trapezoidal(fvalues,steps+1,gap);
-	printf("\nTrapezoidal rule - The integral between %f and %f is : %f\n", xmin,xmax,integ1);
+	/* integrazione secondo la regola dei trapezi */
+	integ1 = Trapezoidal(fvalues,steps+1,gap);         // Integrazione con la regola dei trapezi
+	printf("\nRegola dei trapezi - L'integrale tra %f e %f è: %f\n", xmin,xmax,integ1);
 	
-	/* memory deallocation: the array included in pf */
+	/* deallocazione della memoria: array incluso in pf */
 	if (pf.coeffs != NULL)
-		free(pf.coeffs);
+		free(pf.coeffs);       // Libera la memoria allocata per i coefficienti del polinomio
 	
-	/* memory deallocation: the array fvalues */
+	/* deallocazione della memoria: array fvalues */
 	if (fvalues != NULL)
-		free(fvalues);
+		free(fvalues);         // Libera la memoria allocata per i valori del polinomio
 
-	return 0;
+	return 0;                 // Fine del programma
 }
